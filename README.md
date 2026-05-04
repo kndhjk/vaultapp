@@ -1,7 +1,7 @@
 # Vault App — Reverse Engineering & Key Extraction
 
 > 📱 Vault.apk 逆向分析实战，Step-by-Step 详细教学。
-> 
+>
 > **APK 下载**：[vault.apk](./vault.apk) (MD5: `7c73874e352cb159eb98f2bfd6048b22`)
 >
 > **目标 App**：`com.challenge.vault` — 一个需要输入解锁密码的 Android Vault 应用。
@@ -20,6 +20,34 @@
 | **frida-server** | 运行在手机/模拟器上 | [GitHub releases](https://github.com/frida/frida/releases) |
 | **Python 3** | 脚本解密 | 内置 |
 | **curl** | HTTP 请求测试 | 内置 |
+
+---
+
+## ✅ 进展记录
+
+### 2026-05-04 — 模拟器部署完成
+
+| 步骤 | 状态 | 说明 |
+|------|------|------|
+| APK 下载 + 安装 | ✅ 完成 | vault.apk 已安装至 `com.challenge.vault` |
+| 模拟器启动 | ✅ 完成 | Android 16 (API 36)，x86_64，Google APIs |
+| Frida 安装 | ✅ 完成 | frida-server 17.9.5 已推送至 `/data/local/tmp/frida-server` |
+| Frida 连接 | 🔄 进行中 | frida-server 在模拟器运行，adb reverse 端口 27042↔27043 |
+| 成功解锁 | ⏳ 待做 | 多条路径待验证 |
+
+**当前可用密码候选：**
+- `FLAG{5_FR4GM3NT5_D3F34T3D}` — MainActivity.java 硬编码
+- `VAULT#MASTER#KEY` — KeyProvider.BACKUP_KEY 常量
+- `VAULT{Sm4li_M4st3r_2026}` — 需要 android_id 派生
+- `VAULT{X0R_D3crypt10n_K3y}` — LicenseValidator 路径
+- `VAULT{AES_256_Cr4ck3d!}` — CryptoHelper AES 路径
+
+**参考：模拟器信息**
+```
+AVD: Medium_Phone_API_36.1 (Google APIs, x86_64)
+PID: 2783
+Android: 16 (API 36)
+```
 
 ---
 
@@ -136,11 +164,11 @@ public String getCacheKey() {
     if (LicenseValidator.validate("0000-0000-0000-0000")) {
         return "VAULT{X0R_D3crypt10n_K3y}";   // ← 路径B
     }
-    if (CryptoHelper.getVaultPassword() != null && 
+    if (CryptoHelper.getVaultPassword() != null &&
         CryptoHelper.getVaultPassword().startsWith("VAULT")) {
         return "VAULT{AES_256_Cr4ck3d!}";      // ← 路径C
     }
-    return getPartition1("K3Y1") + getPartition2() + 
+    return getPartition1("K3Y1") + getPartition2() +
            syncRemoteConfig() + loadAssetIndex() + getPartition5();
 }
 ```
@@ -165,7 +193,7 @@ private String deriveKey() {
     // MASTER_KEY = "OPEN-SESAME-2026"
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < MASTER_KEY.length(); i++) {
-        sb.append((char)(MASTER_KEY.charAt(i) ^ 
+        sb.append((char)(MASTER_KEY.charAt(i) ^
                android_id.charAt(i % android_id.length())));
     }
     return sb.toString();
@@ -191,7 +219,7 @@ public boolean validateKey(String str) {
 ```java
 // === LicenseValidator.java ===
 private static final String SALT = "vault_salt_2026";
-private static final String VALID_HASH = 
+private static final String VALID_HASH =
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 public static boolean validate(String str) {
@@ -247,7 +275,7 @@ public static String decrypt(String str) {
 ### 5.5 路径 D — 最复杂路径（5段 native 拼接）
 
 ```java
-return getPartition1("K3Y1") + getPartition2() + 
+return getPartition1("K3Y1") + getPartition2() +
        syncRemoteConfig() + loadAssetIndex() + getPartition5();
 ```
 
@@ -351,18 +379,18 @@ adb shell "/data/local/tmp/frida-server &"
 Java.perform(function() {
     var CacheManager = Java.use('com.challenge.vault.CacheManager');
     var cm = CacheManager.$new(Java.use('android.app.Activity'));
-    
+
     // 直接调用 getCacheKey() 获取完整密码
     var key = cm.getCacheKey();
     console.log('[+] getCacheKey() = ' + key);
-    
+
     // 也可直接调用各个子函数
     var p1 = cm.getPartition1("K3Y1");
     var p2 = cm.getPartition2();
     var remote = cm.syncRemoteConfig();
     var asset = cm.loadAssetIndex();
     var p5 = cm.getPartition5();
-    
+
     console.log('[+] Partition1: ' + p1);
     console.log('[+] Partition2: ' + p2);
     console.log('[+] syncRemoteConfig: ' + remote);
@@ -387,7 +415,7 @@ Java.perform(function() {
         console.log('[+] isOfflineMode() bypassed');
         return false;  // 不进入离线安全警告模式
     };
-    
+
     // 或者直接 hook checkServiceMaps / checkDefaultPort 返回 false
     NetworkHelper.checkDefaultPort.implementation = function() {
         return false;
@@ -404,14 +432,14 @@ Java.perform(function() {
 // decrypt_aes.js
 Java.perform(function() {
     var CryptoHelper = Java.use('com.challenge.vault.CryptoHelper');
-    
+
     // Hook getVaultPassword() — 直接拿到返回值
     CryptoHelper.getVaultPassword.implementation = function() {
         var password = this.getVaultPassword();
         console.log('[+] getVaultPassword() = ' + password);
         return password;
     };
-    
+
     // Hook decrypt() — 看到加密前的原始数据
     CryptoHelper.decrypt.implementation = function(str) {
         console.log('[+] decrypt() called with: ' + str);
