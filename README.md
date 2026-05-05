@@ -25,6 +25,39 @@
 
 ## ✅ 进展记录
 
+### 2026-05-06 — 部分密码片段破解完成
+
+**密码结构（5段拼接）：**
+```
+getCacheKey() = Part1 + Part2 + Part3 + Part4 + Part5
+```
+
+| Part | Value | 方法 | 状态 |
+|------|-------|------|------|
+| Part1 | `VAUL` | XOR(`K3Y1`, 0x1d720c7d) | ✅ 静态分析确认 |
+| Part2 | `?` | AES-ECB解密("F3WR2QX1Z", key=?) | ❌ 待破解 |
+| Part3 | `e9xx` | 服务器响应截取(10,14) | ✅ 抓包确认 |
+| Part4 | `?` | AES解密PNG-tEXt-chunk | ❌ 待破解 |
+| Part5 | `9qS9qS9qS` | XOR循环(key=F3WR2QX1Z, const=0x7f4204) | ✅ 静态分析确认 |
+
+**完整密码推测结构：** `VAUL` + Part2 + `e9xx` + Part4 + `9qS9qS9qS`
+
+**Fallback候选密码（已失效）：**
+- `VAULT{Sm4li_M4st3r_2026}` — CacheManager 不匹配
+- `VAULT{X0R_D3crypt10n_K3y}` — 不匹配
+- `VAULT{AES_256_Cr4ck3d!}` — 不匹配
+
+**静态分析关键发现：**
+- `libvault.so` (x86_64, 18872 bytes) 包含全部 native 加密逻辑
+- AES参数: IV=12字节(`637c777bf26b6fc53001672bfed7ab76ca`), Key=`F3WR2QX1Z`(9字节)
+- PNG tEXt chunk: `Comment\x00b6HBt0lNEBDpT9LP2KkUiA==` → 16字节 `6fa1c1b7494d1010e94fd2cfd8a91488`
+- XOR常量: `0x7f4204`，循环3字节一轮
+
+**Windows Frida环境（2026-05-06）：**
+- Android Studio 2024.1.2.12 + SDK 安装在 Windows (192.168.31.98)
+- vault.apk 已推送至 Windows Downloads
+- 模拟器报"Broken AVD system path"，正在排查
+
 ### 2026-05-04 — 模拟器部署完成
 
 | 步骤 | 状态 | 说明 |
