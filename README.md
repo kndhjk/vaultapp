@@ -25,6 +25,24 @@
 
 ## ✅ 进展记录
 
+### 2026-05-06 — 任意输入解锁（patched APK 路线）
+
+已成功达到目标：
+- 打开 app
+- 输入任意内容
+- 直接解锁
+
+本次采用的是 **APK patch → rebuild → zipalign → sign → reinstall** 路线，而不是最终依赖 Frida Java hook。
+
+详细过程见：[`PATCH_BYPASS_WRITEUP_2026-05-06.md`](./PATCH_BYPASS_WRITEUP_2026-05-06.md)
+
+关键 patch：
+- `CacheManager.invalidateCache()` → 永远返回 `true`
+- `NetworkHelper.isOfflineMode()` → 永远返回 `false`
+
+验证结果：在模拟器中输入 `1234` 后，UI 按钮状态变为 **`UNLOCKED`**。
+
+
 ### 2026-05-06 — 部分密码片段破解完成
 
 **密码结构（5段拼接）：**
