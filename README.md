@@ -34,7 +34,9 @@
 
 本次采用的是 **APK patch → rebuild → zipalign → sign → reinstall** 路线，而不是最终依赖 Frida Java hook。
 
-详细过程见：[`PATCH_BYPASS_WRITEUP_2026-05-06.md`](./PATCH_BYPASS_WRITEUP_2026-05-06.md)
+详细过程见：
+- 英文版：[`PATCH_BYPASS_WRITEUP_2026-05-06.md`](./PATCH_BYPASS_WRITEUP_2026-05-06.md)
+- 中文版：[`PATCH_BYPASS_WRITEUP_2026-05-06_zh.md`](./PATCH_BYPASS_WRITEUP_2026-05-06_zh.md)
 
 关键 patch：
 - `CacheManager.invalidateCache()` → 永远返回 `true`
